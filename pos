@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS Система - Loyverse Style</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { display: flex; height: 100vh; background-color: #f4f5f7; color: #333; overflow: hidden; }
+
+    /* Боковое меню */
+    .sidebar { width: 80px; background: #1e293b; display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 12px; }
+    .nav-btn { background: none; border: none; color: #94a3b8; width: 68px; height: 60px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.7rem; transition: all 0.2s; text-align: center; }
+    .nav-btn .icon { font-size: 1.3rem; }
+    .nav-btn.active, .nav-btn:hover { background: #334155; color: #10c469; }
+
+    /* Основная зона */
+    .main-content { flex: 1; display: flex; position: relative; overflow: hidden; }
+    .tab-content { display: none; width: 100%; height: 100%; }
+    .tab-content.active { display: flex; }
+
+    /* КАССА */
+    .pos-layout { display: flex; width: 100%; height: 100%; }
+    .catalog-section { flex: 1; display: flex; flex-direction: column; background: #fff; border-right: 1px solid #e0e0e0; }
+    .header { padding: 15px 20px; background: #2c3e50; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 1.2rem; font-weight: 600; }
+    .scanner-status { font-size: 0.85rem; background: #27ae60; padding: 4px 8px; border-radius: 4px; }
+
+    .catalog { flex: 1; padding: 20px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; }
+    .product-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; }
+    .product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-color: #10c469; }
+    .product-title { font-weight: 600; font-size: 1rem; margin-bottom: 5px; color: #2d3748; }
+    .product-barcode { font-size: 0.75rem; color: #a0aec0; margin-bottom: 10px; font-family: monospace; }
+    .product-price { font-size: 1.1rem; font-weight: bold; color: #10c469; }
+    .empty-catalog { grid-column: 1 / -1; text-align: center; color: #a0aec0; padding: 40px; }
+
+    /* Корзина */
+    .cart-panel { width: 380px; background: #fff; display: flex; flex-direction: column; box-shadow: -2px 0 10px rgba(0,0,0,0.03); }
+    .cart-header { padding: 15px 20px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+    .cart-header h2 { font-size: 1.1rem; color: #2c3e50; }
+    .clear-btn { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 0.85rem; }
+
+    .client-select-box { padding: 10px 20px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; display: flex; gap: 8px; align-items: center; }
+    .client-select-box select { flex: 1; padding: 6px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.85rem; outline: none; }
+
+    .cart-meta-bar { background: #eeb7b21a; border-bottom: 1px solid #e0e0e0; padding: 10px 20px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; }
+    .cart-meta-item { display: flex; justify-content: space-between; align-items: center; }
+    .cart-meta-item .val { font-weight: 600; color: #2b6cb0; }
+    .remove-meta { cursor: pointer; color: #e53e3e; margin-left: 6px; font-weight: bold; }
+    .points-redeem-btn { background: #3182ce; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin-left: 5px; }
+
+    .cart-items { flex: 1; overflow-y: auto; padding: 10px 20px; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #edf2f7; }
+    .cart-item-info { flex: 1; }
+    .cart-item-name { font-weight: 600; font-size: 0.95rem; }
+    .cart-item-price { font-size: 0.85rem; color: #718096; }
+    .cart-item-controls { display: flex; align-items: center; gap: 8px; }
+    .cart-item-controls button { width: 24px; height: 24px; border: 1px solid #cbd5e0; background: #fff; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .cart-item-qty { font-size: 0.9rem; font-weight: 600; width: 20px; text-align: center; }
+
+    .cart-footer { padding: 20px; border-top: 1px solid #e0e0e0; background: #f8f9fa; }
+    .cart-summary-line { display: flex; justify-content: space-between; font-size: 0.85rem; color: #718096; margin-bottom: 4px; }
+    .cart-total { display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: bold; margin-top: 8px; margin-bottom: 15px; color: #2d3748; }
+    .pay-btn { width: 100%; background: #10c469; color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+    .pay-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+
+    /* ВКЛАДКИ */
+    .tab-panel { flex: 1; padding: 30px; background: #fff; overflow-y: auto; display: flex; gap: 30px; }
+    .left-forms-column { width: 380px; display: flex; flex-direction: column; gap: 20px; }
+    .form-container { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
+    .form-container h2 { margin-bottom: 15px; font-size: 1.1rem; color: #2c3e50; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: #4a5568; }
+    .form-group input, .form-group select { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.95rem; outline: none; background: #fff; }
+    .submit-btn { background: #10c469; color: #fff; border: none; padding: 10px; width: 100%; border-radius: 6px; font-size: 0.95rem; font-weight: bold; cursor: pointer; }
+
+    .right-tables-column { flex: 1; display: flex; flex-direction: column; gap: 30px; }
+    .action-btn { border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; margin-right: 4px; }
+    .edit-btn { background: #3182ce; color: white; }
+    .edit-btn:hover { background: #2b6cb0; }
+    .delete-btn { background: #e53e3e; color: white; }
+    .delete-btn:hover { background: #c53030; }
+    .refund-btn { background: #dd6b20; color: white; padding: 6px 12px; border-radius: 6px; }
+    .refund-btn:hover { background: #c05621; }
+
+    /* ИСТОРИЯ ЧЕКОВ */
+    .receipts-history { flex: 1; padding: 30px; background: #fff; overflow-y: auto; display: flex; gap: 20px; }
+    .receipts-list-container { flex: 1; }
+    .receipt-details-container { width: 350px; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; }
+    .stats-card { background: #e6fffa; border: 1px solid #b2f5ea; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .stats-card .title { font-size: 0.9rem; color: #234e52; }
+    .stats-card .value { font-size: 1.4rem; font-weight: bold; color: #234e52; }
+
+    .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .table th, .table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #edf2f7; font-size: 0.9rem; }
+    .table th { background: #f7fafc; color: #4a5568; font-weight: 600; }
+    .table tr:hover { background: #f8f9fa; }
+    .refunded-tr { opacity: 0.6; background-color: #fff5f5 !important; }
+    .badge-refund { background: #fed7d7; color: #9b2c2c; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+
+    /* МОДАЛЬНЫЕ ОКНА */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: #fff; border-radius: 12px; width: 420px; max-width: 90%; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .modal-header { background: #2c3e50; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 20px; }
+
+    .payment-summary { text-align: center; margin-bottom: 15px; }
+    .payment-summary .label { font-size: 0.85rem; color: #718096; }
+    .payment-summary .amount { font-size: 2.2rem; font-weight: bold; color: #2d3748; }
+
+    .payment-types { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .pay-type-btn { padding: 10px; border: 2px solid #edf2f7; background: #fff; border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; }
+    .pay-type-btn.active { border-color: #10c469; background: #f0fff4; color: #10c469; }
+
+    .loyverse-amount-display { background: #f8f9fa; border: 2px solid #10c469; border-radius: 8px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .loyverse-amount-display .lbl { font-size: 0.85rem; color: #718096; }
+    .loyverse-amount-display .val { font-size: 1.5rem; font-weight: bold; color: #2d3748; outline: none; border: none; background: transparent; text-align: right; width: 140px; }
+
+    .loyverse-quick-add { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+    .loy-chip { background: #edf2f7; border: none; padding: 10px 5px; border-radius: 6px; font-weight: bold; color: #2d3748; cursor: pointer; font-size: 0.9rem; }
+    .loy-chip.exact { background: #e6fffa; color: #234e52; border: 1px solid #b2f5ea; }
+
+    .change-box { background: #f8f9fa; border-radius: 8px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; }
+    .change-box.ok { background: #f0fff4; color: #27ae60; }
+    .change-box.bad { background: #fff5f5; color: #e53e3e; }
+
+    .modal-footer { padding: 15px 20px; background: #f8f9fa; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; }
+    .btn-secondary { flex: 1; padding: 12px; border: 1px solid #cbd5e0; background: #fff; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-primary { flex: 2; padding: 12px; border: none; background: #10c469; color: #fff; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-primary:disabled { background: #cbd5e0; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <!-- Навигация -->
+  <div class="sidebar">
+    <button class="nav-btn active" onclick="switchTab('pos', event)">
+      <span class="icon">🛒</span>
+      <span>Касса</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('add-product', event)">
+      <span class="icon">📦</span>
+      <span>Товары</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('customers', event)">
+      <span class="icon">👤</span>
+      <span>Клиенты</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('discounts', event)">
+      <span class="icon">🏷️</span>
+      <span>Скидки</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('history', event)">
+      <span class="icon">🧾</span>
+      <span>Чеки</span>
+    </button>
+  </div>
+
+  <div class="main-content">
+    
+    <!-- ВКЛАДКА 1: КАССА -->
+    <div class="tab-content active" id="tab-pos">
+      <div class="pos-layout">
+        <div class="catalog-section">
+          <div class="header">
+            <h1>Касса (Евро €)</h1>
+            <span class="scanner-status">● Сканер активен</span>
+          </div>
+          <div class="catalog" id="catalog"></div>
+        </div>
+
+        <div class="cart-panel">
+          <div class="cart-header">
+            <h2>Текущий чек</h2>
+            <button class="clear-btn" onclick="clearCart()">Очистить</button>
+          </div>
+
+          <div class="client-select-box">
+            <label for="posClientDropdown" style="font-size:0.8rem; font-weight:bold; color:#4a5568;">👤 Клиент:</label>
+            <select id="posClientDropdown" onchange="selectCustomerFromDropdown(this.value)">
+              <option value="">-- Выберите клиента --</option>
+            </select>
+          </div>
+
+          <div class="cart-meta-bar" id="cartMetaBar" style="display: none;">
+            <div class="cart-meta-item" id="clientMetaRow" style="display: none;">
+              <span>Выбран:</span>
+              <span><span class="val" id="clientMetaVal"></span><span class="remove-meta" onclick="detachCustomer()">✕</span></span>
+            </div>
+            <div class="cart-meta-item" id="clientPointsRow" style="display: none;">
+              <span>Баллы клиента:</span>
+              <span>
+                <strong id="clientPointsVal" style="color:#2b6cb0;"></strong>
+                <button class="points-redeem-btn" id="redeemBtn" onclick="toggleRedeemPoints()">Списать</button>
+              </span>
+            </div>
+            <div class="cart-meta-item" id="discountMetaRow" style="display: none;">
+              <span>Скидка:</span>
+              <span><span class="val" id="discountMetaVal"></span><span class="remove-meta" onclick="detachDiscount()">✕</span></span>
+            </div>
+          </div>
+
+          <div class="cart-items" id="cartItems"></div>
+
+          <div class="cart-footer">
+            <div class="cart-summary-line">
+              <span>Подытог:</span>
+              <span id="cartSubtotalSum">€0.00</span>
+            </div>
+            <div class="cart-summary-line" id="discountSumLine" style="display: none; color: #e53e3e;">
+              <span>Скидка:</span>
+              <span id="cartDiscountSum">-€0.00</span>
+            </div>
+            <div class="cart-summary-line" id="pointsSumLine" style="display: none; color: #2b6cb0;">
+              <span>Списание баллов:</span>
+              <span id="cartPointsSum">-€0.00</span>
+            </div>
+            <div class="cart-summary-line" id="pointsEarnLine" style="display: none; color: #27ae60;">
+              <span>Будет начислено баллов:</span>
+              <span id="cartPointsEarn">+0 баллов</span>
+            </div>
+            <div class="cart-total">
+              <span>Итого:</span>
+              <span id="cartTotalSum">€0.00</span>
+            </div>
+            <button class="pay-btn" id="payBtn" onclick="openPaymentModal()" disabled>К ОПЛАТЕ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 2: ТОВАРЫ -->
+    <div class="tab-content" id="tab-add-product">
+      <div class="tab-panel">
+        <div class="left-forms-column">
+          <div class="form-container">
+            <h2>Добавить товар</h2>
+            <form id="addProductForm">
+              <div class="form-group">
+                <label for="pName">Название товара</label>
+                <input type="text" id="pName" placeholder="Например: Эспрессо" required>
+              </div>
+              <div class="form-group">
+                <label for="pPrice">Цена (€)</label>
+                <input type="number" id="pPrice" placeholder="0.00" step="0.01" min="0" required>
+              </div>
+              <div class="form-group">
+                <label for="pBarcode">Штрихкод товара</label>
+                <input type="text" id="pBarcode" placeholder="Отсканируйте штрихкод" required>
+              </div>
+              <button type="submit" class="submit-btn">Сохранить товар</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="right-tables-column">
+          <div>
+            <h2>Список всех товаров</h2>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Название</th>
+                  <th>Штрихкод</th>
+                  <th>Цена</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 3: КЛИЕНТЫ -->
+    <div class="tab-content" id="tab-customers">
+      <div class="tab-panel">
+        <div class="left-forms-column">
+          <div class="form-container">
+            <h2>Добавить клиента</h2>
+            <form id="addCustomerForm">
+              <div class="form-group">
+                <label for="cName">Имя клиента</label>
+                <input type="text" id="cName" placeholder="Например: Иван Иванов" required>
+              </div>
+              <div class="form-group">
+                <label for="cPhone">Телефон</label>
+                <input type="text" id="cPhone" placeholder="+371 ...">
+              </div>
+              <div class="form-group">
+                <label for="cBarcode">Штрихкод карты клиента</label>
+                <input type="text" id="cBarcode" placeholder="Отсканируйте карту" required>
+              </div>
+              <button type="submit" class="submit-btn">Сохранить клиента</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="right-tables-column">
+          <div>
+            <h2>База клиентов (Лояльность: 1 € = 1 балл / 1 цент)</h2>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Имя</th>
+                  <th>Телефон</th>
+                  <th>Штрихкод</th>
+                  <th>Баланс баллов</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="customersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 4: СКИДКИ -->
+    <div class="tab-content" id="tab-discounts">
+      <div class="tab-panel">
+        <div class="left-forms-column">
+          <div class="form-container">
+            <h2>Добавить скидку</h2>
+            <form id="addDiscountForm">
+              <div class="form-group">
+                <label for="dName">Название скидки</label>
+                <input type="text" id="dName" placeholder="Например: VIP 10%" required>
+              </div>
+              <div class="form-group">
+                <label for="dType">Тип скидки</label>
+                <select id="dType">
+                  <option value="percent">Процент (%)</option>
+                  <option value="fixed">Фиксированная (€)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="dValue">Значение (% или €)</label>
+                <input type="number" id="dValue" placeholder="10" step="0.01" min="0" required>
+              </div>
+              <div class="form-group">
+                <label for="dBarcode">Штрихкод купона</label>
+                <input type="text" id="dBarcode" placeholder="Отсканируйте купон" required>
+              </div>
+              <button type="submit" class="submit-btn">Сохранить скидку</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="right-tables-column">
+          <div>
+            <h2>Список скидок и купонов</h2>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Название</th>
+                  <th>Скидка</th>
+                  <th>Штрихкод</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="discountsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 5: ИСТОРИЯ ЧЕКОВ -->
+    <div class="tab-content" id="tab-history">
+      <div class="receipts-history">
+        <div class="receipts-list-container">
+          <h2>История продаж</h2>
+          <br>
+          <div class="stats-card">
+            <span class="title">Общая выручка:</span>
+            <span class="value" id="totalRevenue">€0.00</span>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>№ Чека</th>
+                <th>Дата</th>
+                <th>Клиент</th>
+                <th>Тип оплаты</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="receiptsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="receipt-details-container" id="receiptDetails">
+          <h3 style="margin-bottom: 15px; color: #2c3e50;">Детали чека</h3>
+          <div id="receiptDetailsContent" style="color: #718096; font-size: 0.95rem;">
+            Выберите чек из списка для просмотра.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Модальное окно оплаты -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Оплата</h3>
+        <span style="cursor:pointer;" onclick="closePaymentModal()">✕</span>
+      </div>
+      <div class="modal-body">
+        <div class="payment-summary">
+          <div class="label">К оплате</div>
+          <div class="amount" id="modalPayAmount">€0.00</div>
+        </div>
+
+        <div class="payment-types">
+          <button class="pay-type-btn active" id="typeCash" onclick="setPayType('cash')">Наличные</button>
+          <button class="pay-type-btn" id="typeCard" onclick="setPayType('card')">Карта</button>
+        </div>
+
+        <div class="cash-section" id="cashSection">
+          <div class="loyverse-amount-display">
+            <span class="lbl">Получено (€):</span>
+            <input type="number" class="val" id="cashGiven" placeholder="0.00" step="0.01" oninput="calculateChange()">
+          </div>
+
+          <div class="loyverse-quick-add" id="loyverseQuickAdd"></div>
+
+          <div class="change-box bad" id="changeBox">
+            <span>Сдача:</span>
+            <span id="changeAmount">€0.00</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closePaymentModal()">Отмена</button>
+        <button class="btn-primary" id="completePayBtn" onclick="completePayment()">Сохранить чек</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно редактирования -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="editModalTitle">Редактирование</h3>
+        <span style="cursor:pointer;" onclick="closeEditModal()">✕</span>
+      </div>
+      <div class="modal-body" id="editModalBody">
+        <!-- Динамическая форма -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeEditModal()">Отмена</button>
+        <button class="btn-primary" onclick="saveEditData()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Инициализация данных
+    let products = JSON.parse(localStorage.getItem('pos_products_v6')) || [];
+    let customers = JSON.parse(localStorage.getItem('pos_customers_v6')) || [];
+    let discounts = JSON.parse(localStorage.getItem('pos_discounts_v6')) || [];
+    let receipts = JSON.parse(localStorage.getItem('pos_receipts_v6')) || [];
+    let receiptCounter = parseInt(localStorage.getItem('pos_receipt_counter_v6')) || 1;
+
+    let cart = [];
+    let activeCustomer = null;
+    let isRedeemingPoints = false;
+    let activeDiscount = null;
+    let currentPayType = 'cash';
+    let editContext = null; // Контекст текущего редактирования
+
+    // DOM Элементы
+    const catalogEl = document.getElementById('catalog');
+    const cartItemsEl = document.getElementById('cartItems');
+    const cartSubtotalSumEl = document.getElementById('cartSubtotalSum');
+    const cartDiscountSumEl = document.getElementById('cartDiscountSum');
+    const cartPointsSumEl = document.getElementById('cartPointsSum');
+    const cartPointsEarnEl = document.getElementById('cartPointsEarn');
+    const cartTotalSumEl = document.getElementById('cartTotalSum');
+    const discountSumLine = document.getElementById('discountSumLine');
+    const pointsSumLine = document.getElementById('pointsSumLine');
+    const pointsEarnLine = document.getElementById('pointsEarnLine');
+    const payBtn = document.getElementById('payBtn');
+
+    const cartMetaBar = document.getElementById('cartMetaBar');
+    const clientMetaRow = document.getElementById('clientMetaRow');
+    const clientMetaVal = document.getElementById('clientMetaVal');
+    const clientPointsRow = document.getElementById('clientPointsRow');
+    const clientPointsVal = document.getElementById('clientPointsVal');
+    const redeemBtn = document.getElementById('redeemBtn');
+    const discountMetaRow = document.getElementById('discountMetaRow');
+    const discountMetaVal = document.getElementById('discountMetaVal');
+    const posClientDropdown = document.getElementById('posClientDropdown');
+
+    const paymentModal = document.getElementById('paymentModal');
+    const modalPayAmount = document.getElementById('modalPayAmount');
+    const cashGivenInput = document.getElementById('cashGiven');
+    const changeAmountEl = document.getElementById('changeAmount');
+    const changeBox = document.getElementById('changeBox');
+    const cashSection = document.getElementById('cashSection');
+    const completePayBtn = document.getElementById('completePayBtn');
+
+    const editModal = document.getElementById('editModal');
+    const editModalTitle = document.getElementById('editModalTitle');
+    const editModalBody = document.getElementById('editModalBody');
+
+    function switchTab(tabId, event) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      if (event) event.currentTarget.classList.add('active');
+
+      if (tabId === 'pos') updateClientDropdown();
+      if (tabId === 'history') renderHistory();
+      if (tabId === 'add-product') renderProductsManageTable();
+      if (tabId === 'customers') renderCustomersTable();
+      if (tabId === 'discounts') renderDiscountsTable();
+    }
+
+    function saveData() {
+      localStorage.setItem('pos_products_v6', JSON.stringify(products));
+      localStorage.setItem('pos_customers_v6', JSON.stringify(customers));
+      localStorage.setItem('pos_discounts_v6', JSON.stringify(discounts));
+      localStorage.setItem('pos_receipts_v6', JSON.stringify(receipts));
+      localStorage.setItem('pos_receipt_counter_v6', receiptCounter.toString());
+    }
+
+    function updateClientDropdown() {
+      posClientDropdown.innerHTML = '<option value="">-- Выберите клиента --</option>';
+      customers.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.innerText = `${c.name} (${c.phone || 'нет тел.'}) - ${c.points || 0} б.`;
+        if (activeCustomer && activeCustomer.id === c.id) {
+          opt.selected = true;
+        }
+        posClientDropdown.appendChild(opt);
+      });
+    }
+
+    function selectCustomerFromDropdown(customerIdStr) {
+      if (!customerIdStr) {
+        detachCustomer();
+        return;
+      }
+      const customerId = parseInt(customerIdStr);
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        activeCustomer = customer;
+        renderCart();
+      }
+    }
+
+    // --- КАТАЛОГ И ТОВАРЫ ---
+    function renderCatalog() {
+      catalogEl.innerHTML = '';
+      if (products.length === 0) {
+        catalogEl.innerHTML = '<div class="empty-catalog">Товаров нет. Добавьте товары во вкладке «Товары»</div>';
+        return;
+      }
+
+      products.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.onclick = () => addToCart(p.id);
+        card.innerHTML = `
+          <div>
+            <div class="product-title">${p.name}</div>
+            <div class="product-barcode">Штрихкод: ${p.barcode}</div>
+          </div>
+          <div class="product-price">€${p.price.toFixed(2)}</div>
+        `;
+        catalogEl.appendChild(card);
+      });
+    }
+
+    document.getElementById('addProductForm').onsubmit = (e) => {
+      e.preventDefault();
+      const name = document.getElementById('pName').value.trim();
+      const price = parseFloat(document.getElementById('pPrice').value);
+      const barcode = document.getElementById('pBarcode').value.trim();
+
+      if (isBarcodeExists(barcode)) {
+        alert('Данный штрихкод уже существует!');
+        return;
+      }
+
+      products.push({ id: Date.now(), name, price, barcode });
+      saveData();
+      renderCatalog();
+      renderProductsManageTable();
+      e.target.reset();
+    };
+
+    function renderProductsManageTable() {
+      const tbody = document.getElementById('productsTableBody');
+      tbody.innerHTML = '';
+      products.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.name}</td>
+          <td><code>${p.barcode}</code></td>
+          <td>€${p.price.toFixed(2)}</td>
+          <td>
+            <button class="action-btn edit-btn" onclick="openEditModal('product', ${p.id})">Изменить</button>
+            <button class="action-btn delete-btn" onclick="deleteProduct(${p.id})">Удалить</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteProduct(id) {
+      products = products.filter(p => p.id !== id);
+      cart = cart.filter(item => item.id !== id);
+      saveData();
+      renderCatalog();
+      renderCart();
+      renderProductsManageTable();
+    }
+
+    // --- КЛИЕНТЫ ---
+    document.getElementById('addCustomerForm').onsubmit = (e) => {
+      e.preventDefault();
+      const name = document.getElementById('cName').value.trim();
+      const phone = document.getElementById('cPhone').value.trim();
+      const barcode = document.getElementById('cBarcode').value.trim();
+
+      if (isBarcodeExists(barcode)) {
+        alert('Данный штрихкод уже существует!');
+        return;
+      }
+
+      customers.push({ id: Date.now(), name, phone, barcode, points: 0 });
+      saveData();
+      renderCustomersTable();
+      updateClientDropdown();
+      e.target.reset();
+    };
+
+    function renderCustomersTable() {
+      const tbody = document.getElementById('customersTableBody');
+      tbody.innerHTML = '';
+      customers.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${c.name}</strong></td>
+          <td>${c.phone || '-'}</td>
+          <td><code>${c.barcode}</code></td>
+          <td><strong style="color:#2b6cb0;">${(c.points || 0)} баллов</strong> (€${((c.points || 0) / 100).toFixed(2)})</td>
+          <td>
+            <button class="action-btn edit-btn" onclick="openEditModal('customer', ${c.id})">Изменить</button>
+            <button class="action-btn delete-btn" onclick="deleteCustomer(${c.id})">Удалить</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteCustomer(id) {
+      if (activeCustomer && activeCustomer.id === id) detachCustomer();
+      customers = customers.filter(c => c.id !== id);
+      saveData();
+      renderCustomersTable();
+      updateClientDropdown();
+    }
+
+    // --- СКИДКИ ---
+    document.getElementById('addDiscountForm').onsubmit = (e) => {
+      e.preventDefault();
+      const name = document.getElementById('dName').value.trim();
+      const type = document.getElementById('dType').value;
+      const value = parseFloat(document.getElementById('dValue').value);
+      const barcode = document.getElementById('dBarcode').value.trim();
+
+      if (isBarcodeExists(barcode)) {
+        alert('Данный штрихкод уже существует!');
+        return;
+      }
+
+      discounts.push({ id: Date.now(), name, type, value, barcode });
+      saveData();
+      renderDiscountsTable();
+      e.target.reset();
+    };
+
+    function renderDiscountsTable() {
+      const tbody = document.getElementById('discountsTableBody');
+      tbody.innerHTML = '';
+      discounts.forEach(d => {
+        const tr = document.createElement('tr');
+        const valStr = d.type === 'percent' ? `${d.value}%` : `€${d.value.toFixed(2)}`;
+        tr.innerHTML = `
+          <td><strong>${d.name}</strong></td>
+          <td>${valStr}</td>
+          <td><code>${d.barcode}</code></td>
+          <td>
+            <button class="action-btn edit-btn" onclick="openEditModal('discount', ${d.id})">Изменить</button>
+            <button class="action-btn delete-btn" onclick="deleteDiscount(${d.id})">Удалить</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteDiscount(id) {
+      if (activeDiscount && activeDiscount.id === id) detachDiscount();
+      discounts = discounts.filter(d => d.id !== id);
+      saveData();
+      renderDiscountsTable();
+    }
+
+    function isBarcodeExists(barcode, currentId = null) {
+      const checkArray = (arr) => arr.some(item => item.barcode === barcode && item.id !== currentId);
+      return checkArray(products) || checkArray(customers) || checkArray(discounts);
+    }
+
+    // --- РЕДАКТИРОВАНИЕ (МОДАЛЬНОЕ ОКНО) ---
+    function openEditModal(type, id) {
+      editContext = { type, id };
+      editModalBody.innerHTML = '';
+
+      if (type === 'product') {
+        const p = products.find(x => x.id === id);
+        editModalTitle.innerText = 'Изменить товар';
+        editModalBody.innerHTML = `
+          <div class="form-group"><label>Название</label><input type="text" id="editName" value="${p.name}"></div>
+          <div class="form-group"><label>Цена (€)</label><input type="number" step="0.01" id="editPrice" value="${p.price}"></div>
+          <div class="form-group"><label>Штрихкод</label><input type="text" id="editBarcode" value="${p.barcode}"></div>
+        `;
+      } else if (type === 'customer') {
+        const c = customers.find(x => x.id === id);
+        editModalTitle.innerText = 'Изменить клиента';
+        editModalBody.innerHTML = `
+          <div class="form-group"><label>Имя</label><input type="text" id="editName" value="${c.name}"></div>
+          <div class="form-group"><label>Телефон</label><input type="text" id="editPhone" value="${c.phone || ''}"></div>
+          <div class="form-group"><label>Штрихкод карты</label><input type="text" id="editBarcode" value="${c.barcode}"></div>
+          <div class="form-group"><label>Баллы</label><input type="number" id="editPoints" value="${c.points || 0}"></div>
+        `;
+      } else if (type === 'discount') {
+        const d = discounts.find(x => x.id === id);
+        editModalTitle.innerText = 'Изменить скидку';
+        editModalBody.innerHTML = `
+          <div class="form-group"><label>Название</label><input type="text" id="editName" value="${d.name}"></div>
+          <div class="form-group"><label>Тип</label>
+            <select id="editType">
+              <option value="percent" ${d.type === 'percent' ? 'selected' : ''}>Процент (%)</option>
+              <option value="fixed" ${d.type === 'fixed' ? 'selected' : ''}>Фиксированная (€)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Значение</label><input type="number" step="0.01" id="editValue" value="${d.value}"></div>
+          <div class="form-group"><label>Штрихкод</label><input type="text" id="editBarcode" value="${d.barcode}"></div>
+        `;
+      }
+
+      editModal.classList.add('active');
+    }
+
+    function closeEditModal() {
+      editModal.classList.remove('active');
+      editContext = null;
+    }
+
+    function saveEditData() {
+      if (!editContext) return;
+      const { type, id } = editContext;
+      const barcodeInput = document.getElementById('editBarcode').value.trim();
+
+      if (isBarcodeExists(barcodeInput, id)) {
+        alert('Данный штрихкод уже занят!');
+        return;
+      }
+
+      if (type === 'product') {
+        const p = products.find(x => x.id === id);
+        p.name = document.getElementById('editName').value.trim();
+        p.price = parseFloat(document.getElementById('editPrice').value) || 0;
+        p.barcode = barcodeInput;
+        renderCatalog();
+        renderProductsManageTable();
+      } else if (type === 'customer') {
+        const c = customers.find(x => x.id === id);
+        c.name = document.getElementById('editName').value.trim();
+        c.phone = document.getElementById('editPhone').value.trim();
+        c.barcode = barcodeInput;
+        c.points = parseInt(document.getElementById('editPoints').value) || 0;
+        renderCustomersTable();
+        updateClientDropdown();
+      } else if (type === 'discount') {
+        const d = discounts.find(x => x.id === id);
+        d.name = document.getElementById('editName').value.trim();
+        d.type = document.getElementById('editType').value;
+        d.value = parseFloat(document.getElementById('editValue').value) || 0;
+        d.barcode = barcodeInput;
+        renderDiscountsTable();
+      }
+
+      saveData();
+      closeEditModal();
+      renderCart();
+    }
+
+    // --- КОРЗИНА И РАСЧЕТЫ ---
+    function addToCart(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      const cartItem = cart.find(item => item.id === productId);
+      if (cartItem) {
+        cartItem.qty += 1;
+      } else {
+        cart.push({ ...product, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function updateQty(productId, delta) {
+      const cartItem = cart.find(item => item.id === productId);
+      if (cartItem) {
+        cartItem.qty += delta;
+        if (cartItem.qty <= 0) {
+          cart = cart.filter(item => item.id !== productId);
+        }
+      }
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      detachCustomer();
+      detachDiscount();
+    }
+
+    function detachCustomer() {
+      activeCustomer = null;
+      isRedeemingPoints = false;
+      posClientDropdown.value = "";
+      renderCart();
+    }
+
+    function detachDiscount() {
+      activeDiscount = null;
+      renderCart();
+    }
+
+    function toggleRedeemPoints() {
+      isRedeemingPoints = !isRedeemingPoints;
+      renderCart();
+    }
+
+    function calculateCartTotals() {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      let discountAmount = 0;
+
+      if (activeDiscount) {
+        if (activeDiscount.type === 'percent') {
+          discountAmount = subtotal * (activeDiscount.value / 100);
+        } else {
+          discountAmount = activeDiscount.value;
+        }
+      }
+      if (discountAmount > subtotal) discountAmount = subtotal;
+
+      const afterDiscount = subtotal - discountAmount;
+      let pointsDeductionEuro = 0;
+
+      if (activeCustomer && isRedeemingPoints) {
+        const maxPointsEuro = (activeCustomer.points || 0) / 100;
+        pointsDeductionEuro = Math.min(maxPointsEuro, afterDiscount);
+      }
+
+      const total = Math.max(0, afterDiscount - pointsDeductionEuro);
+      const pointsToEarn = activeCustomer ? Math.floor(total) : 0;
+
+      return { subtotal, discountAmount, pointsDeductionEuro, total, pointsToEarn };
+    }
+
+    function renderCart() {
+      cartItemsEl.innerHTML = '';
+
+      cart.forEach(item => {
+        const itemTotal = item.price * item.qty;
+        const itemEl = document.createElement('div');
+        itemEl.className = 'cart-item';
+        itemEl.innerHTML = `
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-price">€${item.price.toFixed(2)} x ${item.qty} = €${itemTotal.toFixed(2)}</div>
+          </div>
+          <div class="cart-item-controls">
+            <button onclick="updateQty(${item.id}, -1)">-</button>
+            <span class="cart-item-qty">${item.qty}</span>
+            <button onclick="updateQty(${item.id}, 1)">+</button>
+          </div>
+        `;
+        cartItemsEl.appendChild(itemEl);
+      });
+
+      let hasMeta = false;
+      if (activeCustomer) {
+        clientMetaRow.style.display = 'flex';
+        clientMetaVal.innerText = activeCustomer.name;
+        clientPointsRow.style.display = 'flex';
+        clientPointsVal.innerText = `${activeCustomer.points || 0} б. (€${((activeCustomer.points || 0)/100).toFixed(2)})`;
+        redeemBtn.innerText = isRedeemingPoints ? 'Отменить' : 'Списать';
+        posClientDropdown.value = activeCustomer.id;
+        hasMeta = true;
+      } else {
+        clientMetaRow.style.display = 'none';
+        clientPointsRow.style.display = 'none';
+        posClientDropdown.value = "";
+      }
+
+      if (activeDiscount) {
+        discountMetaRow.style.display = 'flex';
+        const dStr = activeDiscount.type === 'percent' ? `${activeDiscount.value}%` : `€${activeDiscount.value.toFixed(2)}`;
+        discountMetaVal.innerText = `${activeDiscount.name} (${dStr})`;
+        hasMeta = true;
+      } else {
+        discountMetaRow.style.display = 'none';
+      }
+
+      cartMetaBar.style.display = hasMeta ? 'flex' : 'none';
+
+      const { subtotal, discountAmount, pointsDeductionEuro, total, pointsToEarn } = calculateCartTotals();
+
+      cartSubtotalSumEl.innerText = `€${subtotal.toFixed(2)}`;
+      
+      discountSumLine.style.display = discountAmount > 0 ? 'flex' : 'none';
+      cartDiscountSumEl.innerText = `-€${discountAmount.toFixed(2)}`;
+
+      pointsSumLine.style.display = pointsDeductionEuro > 0 ? 'flex' : 'none';
+      cartPointsSumEl.innerText = `-€${pointsDeductionEuro.toFixed(2)}`;
+
+      pointsEarnLine.style.display = (activeCustomer && pointsToEarn > 0) ? 'flex' : 'none';
+      cartPointsEarnEl.innerText = `+${pointsToEarn} баллов`;
+
+      cartTotalSumEl.innerText = `€${total.toFixed(2)}`;
+      payBtn.disabled = cart.length === 0;
+    }
+
+    // --- СКАНЕР ---
+    let barcodeBuffer = '';
+    let barcodeTimer = null;
+
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 0) {
+          processUniversalBarcode(barcodeBuffer);
+          barcodeBuffer = '';
+        }
+      } else if (e.key.length === 1) {
+        barcodeBuffer += e.key;
+        clearTimeout(barcodeTimer);
+        barcodeTimer = setTimeout(() => { barcodeBuffer = ''; }, 100);
+      }
+    });
+
+    function processUniversalBarcode(code) {
+      const product = products.find(p => p.barcode === code);
+      if (product) { addToCart(product.id); return; }
+
+      const customer = customers.find(c => c.barcode === code);
+      if (customer) { activeCustomer = customer; renderCart(); return; }
+
+      const discount = discounts.find(d => d.barcode === code);
+      if (discount) { activeDiscount = discount; renderCart(); return; }
+    }
+
+    // --- ОПЛАТА LOYVERSE ---
+    function openPaymentModal() {
+      const { total } = calculateCartTotals();
+      modalPayAmount.innerText = `€${total.toFixed(2)}`;
+      cashGivenInput.value = total.toFixed(2);
+      setPayType('cash');
+      renderLoyverseQuickAdd(total);
+      calculateChange();
+      paymentModal.classList.add('active');
+    }
+
+    function closePaymentModal() {
+      paymentModal.classList.remove('active');
+    }
+
+    function setPayType(type) {
+      currentPayType = type;
+      document.getElementById('typeCash').classList.toggle('active', type === 'cash');
+      document.getElementById('typeCard').classList.toggle('active', type === 'card');
+
+      if (type === 'card') {
+        cashSection.style.display = 'none';
+        completePayBtn.disabled = false;
+      } else {
+        cashSection.style.display = 'block';
+        calculateChange();
+      }
+    }
+
+    function renderLoyverseQuickAdd(total) {
+      const container = document.getElementById('loyverseQuickAdd');
+      container.innerHTML = '';
+
+      const exactBtn = document.createElement('button');
+      exactBtn.className = 'loy-chip exact';
+      exactBtn.innerText = 'Без сдачи';
+      exactBtn.onclick = () => { cashGivenInput.value = total.toFixed(2); calculateChange(); };
+      container.appendChild(exactBtn);
+
+      const additions = [1, 2, 5, 10, 20];
+      additions.forEach(addVal => {
+        const btn = document.createElement('button');
+        btn.className = 'loy-chip';
+        btn.innerText = `+€${addVal}`;
+        btn.onclick = () => {
+          let current = parseFloat(cashGivenInput.value) || 0;
+          cashGivenInput.value = (current + addVal).toFixed(2);
+          calculateChange();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function calculateChange() {
+      if (currentPayType !== 'cash') return;
+
+      const { total } = calculateCartTotals();
+      const given = parseFloat(cashGivenInput.value) || 0;
+      const change = given - total;
+
+      if (change >= -0.001) {
+        changeAmountEl.innerText = `€${Math.max(0, change).toFixed(2)}`;
+        changeBox.className = 'change-box ok';
+        completePayBtn.disabled = false;
+      } else {
+        changeAmountEl.innerText = 'Недостаточно';
+        changeBox.className = 'change-box bad';
+        completePayBtn.disabled = true;
+      }
+    }
+
+    function completePayment() {
+      const { subtotal, discountAmount, pointsDeductionEuro, total, pointsToEarn } = calculateCartTotals();
+      const formattedReceiptId = String(receiptCounter).padStart(6, '0');
+
+      if (activeCustomer) {
+        const dbCustomer = customers.find(c => c.id === activeCustomer.id);
+        if (dbCustomer) {
+          const usedPoints = Math.round(pointsDeductionEuro * 100);
+          dbCustomer.points = (dbCustomer.points || 0) - usedPoints + pointsToEarn;
+        }
+      }
+
+      const receipt = {
+        id: formattedReceiptId,
+        date: new Date().toLocaleString('ru-RU'),
+        customerId: activeCustomer ? activeCustomer.id : null,
+        customerName: activeCustomer ? activeCustomer.name : 'Гость',
+        discountName: activeDiscount ? activeDiscount.name : null,
+        payType: currentPayType === 'cash' ? 'Наличные' : 'Карта',
+        subtotal: subtotal,
+        discountAmount: discountAmount,
+        pointsUsedEuro: pointsDeductionEuro,
+        pointsEarned: pointsToEarn,
+        total: total,
+        items: [...cart],
+        isRefunded: false
+      };
+
+      receipts.unshift(receipt);
+      receiptCounter += 1;
+      saveData();
+
+      clearCart();
+      closePaymentModal();
+      updateClientDropdown();
+    }
+
+    // --- ИСТОРИЯ ЧЕКОВ И ВОЗВРАТЫ ---
+    function renderHistory() {
+      const tbody = document.getElementById('receiptsTableBody');
+      const totalRevenueEl = document.getElementById('totalRevenue');
+      tbody.innerHTML = '';
+
+      let revenue = 0;
+
+      receipts.forEach(r => {
+        if (!r.isRefunded) revenue += r.total;
+
+        const tr = document.createElement('tr');
+        if (r.isRefunded) tr.className = 'refunded-tr';
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => showReceiptDetails(r);
+
+        tr.innerHTML = `
+          <td><strong>#${r.id}</strong></td>
+          <td>${r.date}</td>
+          <td>${r.customerName}</td>
+          <td>${r.payType}</td>
+          <td><strong>€${r.total.toFixed(2)}</strong></td>
+          <td>${r.isRefunded ? '<span class="badge-refund">Возвращен</span>' : '<span style="color:#27ae60;font-weight:600;">Оплачен</span>'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      totalRevenueEl.innerText = `€${revenue.toFixed(2)}`;
+    }
+
+    function showReceiptDetails(r) {
+      const detailsContainer = document.getElementById('receiptDetailsContent');
+      let itemsListHtml = r.items.map(i => `
+        <div style="display:flex; justify-content:space-between; margin-bottom: 6px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px;">
+          <span>${i.name} x${i.qty}</span>
+          <span>€${(i.price * i.qty).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      detailsContainer.innerHTML = `
+        <div style="margin-bottom: 15px;">
+          <p><strong>Чек:</strong> #${r.id}</p>
+          <p><strong>Дата:</strong> ${r.date}</p>
+          <p><strong>Клиент:</strong> ${r.customerName}</p>
+          <p><strong>Оплата:</strong> ${r.payType}</p>
+          <p><strong>Статус:</strong> ${r.isRefunded ? 'ВОЗВРАЩЕН' : 'Оплачен'}</p>
+        </div>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin-bottom: 15px;">
+        <h4 style="margin-bottom: 10px; color: #2d3748;">Товары:</h4>
+        ${itemsListHtml}
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+        <div style="display:flex; justify-content:space-between; font-size: 0.9rem; color: #718096; margin-bottom: 4px;">
+          <span>Подытог:</span>
+          <span>€${(r.subtotal || r.total).toFixed(2)}</span>
+        </div>
+        ${r.discountAmount ? `
+        <div style="display:flex; justify-content:space-between; font-size: 0.9rem; color: #e53e3e; margin-bottom: 4px;">
+          <span>Скидка (${r.discountName || ''}):</span>
+          <span>-€${r.discountAmount.toFixed(2)}</span>
+        </div>` : ''}
+        ${r.pointsUsedEuro ? `
+        <div style="display:flex; justify-content:space-between; font-size: 0.9rem; color: #2b6cb0; margin-bottom: 4px;">
+          <span>Списано баллов:</span>
+          <span>-€${r.pointsUsedEuro.toFixed(2)}</span>
+        </div>` : ''}
+        ${r.pointsEarned ? `
+        <div style="display:flex; justify-content:space-between; font-size: 0.9rem; color: #27ae60; margin-bottom: 4px;">
+          <span>Начислено баллов:</span>
+          <span>+${r.pointsEarned}</span>
+        </div>` : ''}
+        <div style="display:flex; justify-content:space-between; font-size: 1.1rem; font-weight: bold; color: #2d3748; margin-top: 8px; margin-bottom: 20px;">
+          <span>ИТОГО:</span>
+          <span>€${r.total.toFixed(2)}</span>
+        </div>
+        ${!r.isRefunded ? `<button class="refund-btn" style="width:100%;" onclick="processRefund('${r.id}')">Сделать возврат</button>` : ''}
+      `;
+    }
+
+    function processRefund(receiptId) {
+      const receipt = receipts.find(r => r.id === receiptId);
+      if (!receipt || receipt.isRefunded) return;
+
+      if (!confirm(`Вы действительно хотите оформить возврат по чеку #${receipt.id}?`)) return;
+
+      receipt.isRefunded = true;
+
+      // Возврат баллов клиенту
+      if (receipt.customerId) {
+        const dbCustomer = customers.find(c => c.id === receipt.customerId);
+        if (dbCustomer) {
+          const usedPoints = Math.round((receipt.pointsUsedEuro || 0) * 100);
+          const earnedPoints = receipt.pointsEarned || 0;
+          // Возвращаем списанные баллы и забираем накопленные
+          dbCustomer.points = Math.max(0, (dbCustomer.points || 0) + usedPoints - earnedPoints);
+        }
+      }
+
+      saveData();
+      renderHistory();
+      renderCustomersTable();
+      showReceiptDetails(receipt);
+    }
+
+    renderCatalog();
+    updateClientDropdown();
+  </script>
+</body>
+</html>
